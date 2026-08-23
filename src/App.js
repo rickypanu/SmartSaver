@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, update, push } from "firebase/database";
 import { Html5QrcodeScanner } from "html5-qrcode";
-import { Power, Activity, QrCode, ShieldAlert, Cpu, PlusCircle, CheckCircle, Wifi, WifiOff, Zap } from "lucide-react";
+import { Power, QrCode, ShieldAlert, Cpu, PlusCircle, CheckCircle, Wifi, WifiOff, Zap } from "lucide-react";
 
 // --- FIREBASE CONFIGURATION ---
 const firebaseConfig = {
