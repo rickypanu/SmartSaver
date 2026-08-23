@@ -19,6 +19,7 @@ import {
   Wifi,
   WifiOff,
   Zap,
+  Trash2,
 } from "lucide-react";
 
 // Inject Responsive CSS for Mobile Screens
@@ -58,8 +59,14 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 export default function SmartHubDashboard() {
-  const [macAddress, setMacAddress] = useState("");
-  const [activeMac, setActiveMac] = useState("");
+  // Initialize state with previously saved MAC address from localStorage
+  const [macAddress, setMacAddress] = useState(() => {
+    return localStorage.getItem("smartsaver_last_mac") || "";
+  });
+  const [activeMac, setActiveMac] = useState(() => {
+    return localStorage.getItem("smartsaver_last_mac") || "";
+  });
+
   const [deviceData, setDeviceData] = useState(null);
   const [historyLogs, setHistoryLogs] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -84,9 +91,11 @@ export default function SmartHubDashboard() {
           const cleanMac = decodedText.trim().toUpperCase();
           setMacAddress(cleanMac);
           setActiveMac(cleanMac);
+          localStorage.setItem("smartsaver_last_mac", cleanMac);
           setIsScanning(false);
+          showStatus("success", `Connected to scanned device ${cleanMac}`);
         },
-        () => {},
+        () => {}
       );
     }
 
@@ -140,6 +149,7 @@ export default function SmartHubDashboard() {
     }
 
     setActiveMac(formattedMac);
+    localStorage.setItem("smartsaver_last_mac", formattedMac);
 
     const deviceRef = ref(db, `devices/${formattedMac}`);
     get(deviceRef)
@@ -168,7 +178,7 @@ export default function SmartHubDashboard() {
 
           showStatus(
             "success",
-            `Device ${formattedMac} registered successfully!`,
+            `Device ${formattedMac} registered successfully!`
           );
         } else {
           showStatus("success", `Connected to device ${formattedMac}`);
@@ -179,7 +189,17 @@ export default function SmartHubDashboard() {
       });
   };
 
-  // --- 4. COMMAND HANDLERS & LOGGING ---
+  // --- 4. FORGET / DISCONNECT DEVICE ---
+  const handleForgetDevice = () => {
+    localStorage.removeItem("smartsaver_last_mac");
+    setActiveMac("");
+    setMacAddress("");
+    setDeviceData(null);
+    setHistoryLogs([]);
+    showStatus("success", "Device cleared from local memory.");
+  };
+
+  // --- 5. COMMAND HANDLERS & LOGGING ---
   const logEvent = (portKey, action, trigger) => {
     if (!activeMac) return;
     const historyRef = ref(db, `history/${activeMac}`);
@@ -206,7 +226,7 @@ export default function SmartHubDashboard() {
     logEvent(
       portKey,
       `Mode changed to ${newMode.toUpperCase()}`,
-      "User Override",
+      "User Override"
     );
   };
 
@@ -229,7 +249,6 @@ export default function SmartHubDashboard() {
       <style>{responsiveCss}</style>
 
       <header style={styles.header}>
-       
         <img
           src="/logo.png"
           alt="Smart Saver Logo"
@@ -298,15 +317,24 @@ export default function SmartHubDashboard() {
                 Active Device:{" "}
                 <code style={{ wordBreak: "break-all" }}>{activeMac}</code>
               </h3>
-              <div
-                style={{
-                  ...styles.onlineBadge,
-                  backgroundColor: isHubOnline ? "#e8f5e9" : "#fff3e0",
-                  color: isHubOnline ? "#2e7d32" : "#e65100",
-                }}
-              >
-                {isHubOnline ? <Wifi size={15} /> : <WifiOff size={15} />}
-                <span>{isHubOnline ? "ONLINE" : "OFFLINE / PENDING"}</span>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <div
+                  style={{
+                    ...styles.onlineBadge,
+                    backgroundColor: isHubOnline ? "#e8f5e9" : "#fff3e0",
+                    color: isHubOnline ? "#2e7d32" : "#e65100",
+                  }}
+                >
+                  {isHubOnline ? <Wifi size={15} /> : <WifiOff size={15} />}
+                  <span>{isHubOnline ? "ONLINE" : "OFFLINE / PENDING"}</span>
+                </div>
+                <button
+                  onClick={handleForgetDevice}
+                  style={styles.forgetBtn}
+                  title="Clear saved device"
+                >
+                  <Trash2 size={13} /> Forget
+                </button>
               </div>
             </div>
 
@@ -534,6 +562,19 @@ const styles = {
     borderRadius: "20px",
     fontSize: "11px",
     fontWeight: "bold",
+  },
+  forgetBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "5px 10px",
+    fontSize: "11px",
+    borderRadius: "20px",
+    border: "1px solid #ffcdd2",
+    backgroundColor: "#ffebee",
+    color: "#c62828",
+    cursor: "pointer",
+    fontWeight: "600",
   },
   statusRow: {
     display: "flex",
